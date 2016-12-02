@@ -67,13 +67,11 @@
     <ClCompile Include="Entity.cpp" />
     <ClCompile Include="Light.cpp" />
     <ClCompile Include="Main.cpp" />
-    <ClCompile Include="Pixel.cpp" />
     <ClCompile Include="Plane.cpp" />
     <ClCompile Include="PointCollision.cpp" />
     <ClCompile Include="Ray.cpp" />
     <ClCompile Include="RayCannon.cpp" />
     <ClCompile Include="RayColor.cpp" />
-    <ClCompile Include="RepoTool.cpp" />
     <ClCompile Include="ShaderTool.cpp" />
     <ClCompile Include="Shape.cpp" />
     <ClCompile Include="Sphere.cpp" />
@@ -90,13 +88,11 @@
     <ClInclude Include="Cube.h" />
     <ClInclude Include="Entity.h" />
     <ClInclude Include="Light.h" />
-    <ClInclude Include="Pixel.h" />
     <ClInclude Include="Plane.h" />
     <ClInclude Include="PointCollision.h" />
     <ClInclude Include="Ray.h" />
     <ClInclude Include="RayCannon.h" />
     <ClInclude Include="RayColor.h" />
-    <ClInclude Include="RepoTool.h" />
     <ClInclude Include="ShaderTool.h" />
     <ClInclude Include="Shape.h" />
     <ClInclude Include="Sphere.h" />

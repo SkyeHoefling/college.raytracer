@@ -1,6 +1,5 @@
 #pragma once
 #include "Shape.h"
-#include "World.h"
 class Plane : public Shape
 {
 private:

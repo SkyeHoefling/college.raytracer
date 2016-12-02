@@ -30,7 +30,6 @@ public:
 	float dot( RayColor rc );
 	RayColor getNormalized();
 
-	bool operator==( RayColor target );
     RayColor operator+(RayColor rightHandSide);
 	RayColor operator-(RayColor rightHandSide);
 	RayColor operator*(double multiplyer);

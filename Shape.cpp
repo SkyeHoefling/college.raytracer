@@ -92,5 +92,3 @@ double Shape::clampDouble(double value, double low, double high){
 	else if(value < low) value = low;
 	return value;
 }
-double Shape::getIndexOfRefraction()	{	return _indexOfRefraction;	}
-void Shape::setIndexOfRefraction(double i)	{	_indexOfRefraction = i;	}

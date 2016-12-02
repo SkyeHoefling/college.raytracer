@@ -3,13 +3,6 @@
 Ray::Ray( Vector3 loc)
 {
 	_origin = Vector3( loc.getX(), loc.getY(), loc.getZ() );
-	_inside = false;
-	//_color = RayColor( );
-}
-Ray::Ray( Vector3 loc, bool inside)
-{
-	_origin = Vector3( loc.getX(), loc.getY(), loc.getZ() );
-	_inside = inside;
 	//_color = RayColor( );
 }
 
@@ -46,14 +39,6 @@ Vector3 Ray::asVector3(){
 	return _target-_origin;
 }
 
-double Ray::getEta(){
-	return _eta;
-}
-
-void Ray::setEta( double new_eta ){
-	_eta = new_eta;
-}
-bool Ray::getInside(){	return _inside;}
 
 /*RayColor Ray::getColor(){
 	return collidesWith();

@@ -20,4 +20,3 @@ Plane::~Plane(void)
 }
 
 Vector3 Plane::getSurfaceNormal(){ return _normal; }
-
