@@ -1,24 +1,21 @@
 #include "ShaderTool.h"
 #include "Vector3.h"
 #include <stdio.h>
-#include <math.h>
 #include <iostream>
 
 #define RED RayColor( 1.0f, 0.0f, 0.0f )
 #define YELLOW RayColor( 1.0f, 1.0f, 0.0f )
-#define WHITE RayColor( 1.0f, 1.0f, 1.0f )
 //#define PI 3.1456 redifined
 #define MAX_DEPTH 5
 typedef unsigned char BYTE;
 
-/*RayColor ShaderTool::applyPhongShader(AmbientLight* ambLight,
-									  Light* lightSources,
+RayColor ShaderTool::applyPhongShader(AmbientLight* ambLight,
+									  Light** lightSources,
 									  int numberOfLights,
 									  Vector3 surfaceNormal,
 									  Vector3 intersectionPoint,
 									  Shape* colorfulShape,
-									  Camera* camera)*/
-RayColor ShaderTool::applyPhongShader(World* worldRef, PointCollision* collisionPoint)
+									  Camera* camera)
 {
 	// solve for L(v) by adding up 3 steps
 	// 1. Ka x La (according to slides)
@@ -55,8 +52,8 @@ RayColor ShaderTool::applyPhongShader(World* worldRef, PointCollision* collision
 	
 	// Calculate part 1 the ambient solution
 	// 1. Ka x La
-	ambientSolution = Vector4(worldRef->getAmbientLight()->getColor().asVector3() * collisionPoint->getShape()->getAmbientColor().asVector3());
-	if(worldRef->getTotalLightSources() > 0){
+	ambientSolution = Vector4(ambLight->getColor().asVector3() * colorfulShape->getAmbientColor().asVector3());
+	if(numberOfLights > 0){
 		// To Calculate S:
 		// Direction of Incoming Light =
 		// light position - point of intersection
@@ -65,13 +62,13 @@ RayColor ShaderTool::applyPhongShader(World* worldRef, PointCollision* collision
 		// Calculate part 2 the diffuse solution
 		// 2. Kd * Sigma(Li(Si [dot] N))
 		double sigma = 0;
-		for(int i = 0; i < worldRef->getTotalLightSources(); i ++){
-			dirIncomingLight = collisionPoint->getPosition1() -
-							   worldRef->getLightSources()[i].getPosition();
+		for(int i = 0; i < numberOfLights; i ++){
+			dirIncomingLight = intersectionPoint -
+							   lightSources[i]->getPosition();
 			dirIncomingLight.normalize();
-			sigma = sigma + dirIncomingLight.dot(collisionPoint->getSurfaceNormalP1());
+			sigma = sigma + dirIncomingLight.dot(surfaceNormal);
 		}
-		diffuseSolution = Vector4(collisionPoint->getShape()->getDiffuseColor().asVector3() * sigma);
+		diffuseSolution = Vector4(colorfulShape->getDiffuseColor().asVector3() * sigma);
 
 		// Calculate part 3 the specular solution
 		// 3. Ks * Sigma(Li(Ri [dot] V) ^ Ke)
@@ -93,25 +90,25 @@ RayColor ShaderTool::applyPhongShader(World* worldRef, PointCollision* collision
 		// To calculate V:
 		// Viewing direction = camera position - point of intersection
 		Vector3 viewingDirection = 
-			collisionPoint->getPosition1() - worldRef->getCamera()->getPosition();
+			intersectionPoint - camera->getPosition();
 		viewingDirection.normalize();
 
 		// NOW: lets calculate the specular solution since we have all the pieces
 		sigma = 0;
-		for(int i = 0; i < worldRef->getTotalLightSources(); i ++){
+		for(int i = 0; i < numberOfLights; i ++){
 			// get direction of incoming light (S)
-			dirIncomingLight = collisionPoint->getPosition1() -
-							   worldRef->getLightSources()[i].getPosition();
+			dirIncomingLight = intersectionPoint -
+							   lightSources[i]->getPosition();
 			dirIncomingLight.normalize();
 			// calculate our mirror reflection
-			aAsDoub = 2 * (dirIncomingLight.dot(collisionPoint->getSurfaceNormalP1()) / 
-				(collisionPoint->getSurfaceNormalP1().length() * collisionPoint->getSurfaceNormalP1().length()));
-			a = collisionPoint->getSurfaceNormalP1() * aAsDoub;
+			aAsDoub = 2 * (dirIncomingLight.dot(surfaceNormal) / 
+				(surfaceNormal.length() * surfaceNormal.length()));
+			a = surfaceNormal * aAsDoub;
 			mirrorReflection = dirIncomingLight - a;
 			sigma = sigma + pow(mirrorReflection.dot(viewingDirection), 
-				collisionPoint->getShape()->getExponentColor());
+				colorfulShape->getExponentColor());
 		}
-		specularSolution = Vector4(collisionPoint->getShape()->getSpecularColor().asVector3() * sigma);
+		specularSolution = Vector4(colorfulShape->getSpecularColor().asVector3() * sigma);
 	}
 	// this part is simple just add up the 3 solutions, and return
 	RayColor pixelColor = RayColor(ambientSolution.getNormalized() +
@@ -120,40 +117,17 @@ RayColor ShaderTool::applyPhongShader(World* worldRef, PointCollision* collision
 	return pixelColor.getNormalized();
 }
 
-RayColor ShaderTool::gridProceduralShade( Shape * plane, Vector3 intersectionPoint )
+RayColor ShaderTool::GridProceduralShade( Shape * plane, Vector3 intersectionPoint )
 {
-	RayColor red = RED, yellow = YELLOW, white = WHITE;
-	RayColor returnColor = YELLOW;
-
-	double TILE_W = 20, TILE_H = 20;
-	double Iy = intersectionPoint.getY();
-	double Iz = intersectionPoint.getZ();
-
-	int y_tiles =  (int)( Iy / TILE_W );
-	int z_tiles =  (int)( Iz / TILE_H );
-
+	double TILE_W = 5, TILE_H = .5;
+	int x_tiles = (int) ( ( intersectionPoint.getX() - plane->getPosition().getX() ) / TILE_W );
+	int y_tiles = (int) ( ( intersectionPoint.getY() - plane->getPosition().getY() ) / TILE_W );
+	int z_tiles = (int) ( ( intersectionPoint.getZ() - plane->getPosition().getZ() ) / TILE_H );
+	
 	int row = ( y_tiles % 2 == 0 ) ? 0 : 1;
-	int col = ( z_tiles % 2 == 0 ) ? 0 : 1;
-
-	//Allow me to explain this hack
-	//the basis of it is the ternary logic of (( col ^ row ) ? RED : YELLOW. Basically determing the
-	// XOR of what the color should be, either red or yellow. This creates the checker pattern. However,
-	//by itself it will line up w/ other quadrents making a double wide section along the y and z axis.
-	//to correct this we encase the ternary logic within another one, which checks against the sign of
-	//our current posisiton, effectively creating an XOR of the pattern or XORs. However the one line only
-	//accounts for 3 quadrants, we still need to alternate one more time. The simpleest way to do that is
-	//to check to see if we are in that quadrent and if we are, revert the colors that it originally thought
-	//it was going to render.
-	returnColor =(Iz > 0 || Iy > 0 ) ? (( col ^ row ) ? YELLOW : RED) :  (( col ^ row ) ? RED : YELLOW);
-	if( Iz > 0 && Iy > 0 ){
-		if( returnColor == red ){
-			returnColor = yellow;
-		}else{
-			returnColor = red;
-		}
-	}
-
-	return returnColor;
+	int col = ( z_tiles % 2 == 0 ) ? 1 : 0;
+	
+	return ( row ^ col ) ? RED : YELLOW;
 }
 
 RayColor ShaderTool::SinProceduralShade( Shape * plane, Vector3 intersectionPoint )
@@ -182,164 +156,54 @@ long getFileSize(FILE *file)
 	return lEndPos;
 }
 
+RayColor ShaderTool::ImageProceduralShade( Shape * plane, Vector3 intersectionPoint )
+{
+	const char *filePath = "C:\\Users\\IGMAdmin\\Desktop\\checkpoint3.p";
+	BYTE * fileBuffer; FILE * file;
+
+	if((file = fopen( filePath, "rb" )) == NULL )
+		return RayColor( 1.0f, 1.0f, 1.0f );
+	else{
+		long fileSize = getFileSize( file );
+		fread( fileBuffer, fileSize, 1, file );
+	}
+	
+	double TILE_W = 5, TILE_H = .5;
+	int x_tiles = (int) ( ( intersectionPoint.getX() - plane->getPosition().getX() ) / TILE_W );
+	int y_tiles = (int) ( ( intersectionPoint.getY() - plane->getPosition().getY() ) / TILE_W );
+	int z_tiles = (int) ( ( intersectionPoint.getZ() - plane->getPosition().getZ() ) / TILE_H );
+	
+	int row = ( y_tiles % 2 == 0 ) ? 0 : 1;
+	int col = ( z_tiles % 2 == 0 ) ? 1 : 0;
+	
+	return ( row ^ col ) ? RED : YELLOW;
+}
 ShaderTool::ShaderTool(World * worldRef, int maxDepth){
 	_worldRef = worldRef;
 	_maxDepth = maxDepth;
 }
 RayColor ShaderTool::illuminate(Ray * ray, int depth){
 	// LETS ILLUMINATE
-	// okay
 	PointCollision collisionPoint;
-	RayColor resultColor;
-	bool intersection = CollisionTool::getClosestIntersection(_worldRef->getShapes(),
-															  _worldRef->getTotalShapes(), 
-															  ray, 
-															  collisionPoint);
+	PointCollision currentCollisionPoint;
+	bool intersection = false;
+	for(int i = 0; i < _worldRef->getTotalShapes(); i ++){
+		if(CollisionTool::collidesWithSphere(&_worldRef->getShapes()[i],
+											 ray->getTarget(),
+											 ray->getOrigin(),
+											 currentCollisionPoint) || intersection)
+			intersection = true;
+		if(intersection){
+			double newDistance = 
+				currentCollisionPoint.getPosition().distanceFrom(_worldRef->getCamera()->getPosition());
+			double oldDistance =
+				collisionPoint.getPosition().distanceFrom(_worldRef->getCamera()->getPosition());
+			if(newDistance < oldDistance) collisionPoint = currentCollisionPoint;
+		}
+	}
 	if(!intersection) {
-		resultColor = _worldRef->getAmbientLight()->getColor();
+		return _worldRef->getAmbientLight()->getColor();
 	} else {
-		if(collisionPoint.getShape()->getType() == SHAPE_PLANE){
-			double Y_OFFSET = -150;
-			double Z_OFFSET = -200;
-			double colY = collisionPoint.getPosition1().getY() + Y_OFFSET;
-			double colZ = collisionPoint.getPosition1().getZ() + Z_OFFSET;
-
-			double shapeY = collisionPoint.getShape()->getPosition().getY();
-			double shapeZ = collisionPoint.getShape()->getPosition().getZ();
-
-			double dist_W = 250;
-			double dist_H = 400;
-
-			if( abs( colY - shapeY) < dist_W && abs( colZ-shapeZ ) < dist_H ){
-				collisionPoint.setColor(
-					ShaderTool::gridProceduralShade(collisionPoint.getShape(), 
-												collisionPoint.getPosition1() ));
-			}else{
-				collisionPoint.setColor( _worldRef->getAmbientLight()->getColor() );
-			}
-			return collisionPoint.getColor();
-		}
-		else collisionPoint.setColor();
-      
-		// BASIC local illumination, returns the objects color???
-		resultColor = ShaderTool::applyPhongShader(_worldRef, &collisionPoint);		
-		Ray* shadow = spawnShadowRay(&collisionPoint.getPosition1());
-      
-		//resultColor = resultColor + illuminate(shadow, _maxDepth - 1);
-		if(depth < _maxDepth){						
-			if(collisionPoint.getShape()->getReflection() > 0){
-				Ray * reflection = spawnReflectionRay(&collisionPoint, ray);
-				resultColor = resultColor +
-					(illuminate(reflection, depth+1) * collisionPoint.getShape()->getReflection());
-			}
-			if(collisionPoint.getShape()->getTransparent() > 0){
-				Ray* refraction = spawnRefractionRay(&collisionPoint, ray);
-				resultColor = resultColor + 
-					(illuminate(refraction, depth+1) * collisionPoint.getShape()->getTransparent());
-			}						
-		}
+		return collisionPoint.getShape()->getColor();
 	}
-	return resultColor;
-}
-
-Ray* ShaderTool::spawnShadowRay(Vector3* origin, int currentLight){
-	Ray* shadow = new Ray(*origin);
-	shadow->setTarget(_worldRef->getLightSources()[currentLight].getPosition());
-	return shadow;
-}
-Ray* ShaderTool::spawnShadowRay(Vector3* origin){
-	return spawnShadowRay(origin, 0);
-}
-Ray* ShaderTool::spawnReflectionRay(PointCollision* collisionPoint, Ray* currentRay){
-	// reflection ray formula
-	//			  S [dot] N
-	// R = S - 2  ---------- N
-	//				  |N|^2
-	// remember variables:
-	// S: incoming ray or currentRay
-	// N: normal at collisionPoint
-	//
-	// Equation breakdown:
-	// R = S - 2a
-	//		S [dot] N
-	// a = ----------- N
-	//		  |N|^2
-	Vector3 a = collisionPoint->getSurfaceNormalP1() * 
-		(currentRay->asVector3().normalized().dot(collisionPoint->getSurfaceNormalP1()) / 
-		collisionPoint->getSurfaceNormalP1().length() * collisionPoint->getSurfaceNormalP1().length());
-	Vector3 reflectionVector = currentRay->asVector3().normalized() - (a.normalized() * 2);
-	Ray* reflection = new Ray(collisionPoint->getPosition1());
-	reflection->setTarget(collisionPoint->getPosition1() + (reflectionVector.normalized() *5000));
-	//reflection->setEta(INDEX_OF_REFRACTION_AIR);
-	return reflection;
-}
-
-Ray* ShaderTool::spawnRefractionRay(PointCollision* collisionPoint, Ray* currentRay){
-	// refraction ray math:
-	// *First lets demonstrate some simple formulas*
-	// (eta)i = sin(theta)t
-	// ------   -----------
-	// (eta)t   sin(theta)i
-	//
-	//                   eta(i)
-	// (alpha) = (eta)it = ------
-	//                   eta(t)
-	//
-	// cos(theta)i = -D [dot] N
-	//
-	// ** Lets get into the formula now **
-	// T = (alpha)D + (beta)N
-	// T = (eta)it(-D [dot] N - sqrt(1 - (eta)it((-D [dot] N)^2 -1))N
-	// T = (alpha)(-D [dot] N - sqrt(1 - (alpha)( (-D [dot] N)^2 - 1)) N
-	double alpha;
-	double costheta;
-	double betasqrt;
-	double beta;
-	Vector3 normal = collisionPoint->getSurfaceNormalP1();
-	Vector3 endPoint = Vector3();
-	
-	double eta = currentRay->getEta();
-	double ior = collisionPoint->getShape()->getIndexOfRefraction();
-	if(eta == ior){
-		// we are inside!! bamf
-		normal = normal * -1;
-		collisionPoint->getShape()->setIndexOfRefraction(INDEX_OF_REFRACTION_AIR);
-	}
-		
-	eta = INDEX_OF_REFRACTION_AIR;
-	alpha = eta / ior;
-	costheta = currentRay->asVector3().dot(normal);
-	betasqrt = 1 - alpha*alpha * (costheta*costheta -1);
-	//if(betasqrt < 0) return spawnReflectionRay(collisionPoint, currentRay);
-	beta = alpha * costheta - sqrt(betasqrt);
-
-	endPoint = currentRay->asVector3() * alpha + normal * beta;
-
-	Ray* transmission = new Ray(collisionPoint->getPosition1());
-	transmission->setTarget(endPoint.normalized() * 5000);
-	transmission->setEta(collisionPoint->getShape()->getIndexOfRefraction());	
-	endPoint = currentRay->getTarget();
-	currentRay = new Ray(collisionPoint->getPosition1());
-	currentRay->setTarget(endPoint.normalized());
-	//Ray* nRay = new Ray(getPointOnOtherSideOfTheSphere(currentRay, collisionPoint));
-	//nRay->setTarget(endPoint);
-	transmission = new Ray(getPointOnOtherSideOfTheSphere(currentRay, collisionPoint));
-	transmission->setTarget(endPoint);
-	return transmission;
-}
-
-Vector3 ShaderTool::getPointOnOtherSideOfTheSphere( Ray * T , PointCollision* origin ){
-	Ray radiusRay = Ray( origin->getPosition1() );
-	radiusRay.setTarget( origin->getShape()->getPosition() );
-
-	double radius = origin->getShape()->getBoundingRadius();
-	double inside =  T->asVector3().dot( radiusRay.asVector3() ) / radius;
-	double toRad = (3.14/180);
-	double tempTheta = cos(inside *  toRad);
-	double centerTheta = 90 - tempTheta;
-
-	double centerDist = radius * sin( centerTheta );
-	T->setTarget( T->getTarget() * ( centerDist * 2 ) );
-
-	return T->getTarget();
 }

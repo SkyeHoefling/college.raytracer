@@ -23,12 +23,12 @@ protected:
 	RayColor _diffuseColor;
 	int _exponentColor;
 	ShapeType _type;
-	double _indexOfRefraction;
 	void init( void );
 public:
 	Shape(void);
 	_declspec(deprecated("**(deprecated)Color has been broken up into multiple colors, this code was originally for ambient only**")) Shape(Vector3 position, double radius, RayColor color);
-	Shape(Vector3 position, double radius, RayColor color, RayColor ambient, RayColor specular, RayColor diffuse, int exponent, double reflection, double transparent);
+	_declspec(deprecated("**(deprecated)This is used for phong shading WHICH IS NOT RAY TRACING**"))Shape(Vector3 position, double radius, RayColor ambient, RayColor specular, RayColor diffuse, int exponent);
+	Shape(Vector3 position, double radius, RayColor color, double reflection, double transparent);
 	~Shape(void);
 
 	double getBoundingRadius();
@@ -45,7 +45,6 @@ public:
 	int getExponentColor();
 	ShapeType getType();
 
-	double getIndexOfRefraction();
-	void setIndexOfRefraction(double i);
+	
 };
 

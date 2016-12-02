@@ -3,13 +3,6 @@
 Ray::Ray( Vector3 loc)
 {
 	_origin = Vector3( loc.getX(), loc.getY(), loc.getZ() );
-	_inside = false;
-	//_color = RayColor( );
-}
-Ray::Ray( Vector3 loc, bool inside)
-{
-	_origin = Vector3( loc.getX(), loc.getY(), loc.getZ() );
-	_inside = inside;
 	//_color = RayColor( );
 }
 
@@ -42,18 +35,7 @@ Vector3 Ray::getTarget(){
 Vector3 Ray::getOrigin(){
 	return _origin;
 }
-Vector3 Ray::asVector3(){
-	return _target-_origin;
-}
 
-double Ray::getEta(){
-	return _eta;
-}
-
-void Ray::setEta( double new_eta ){
-	_eta = new_eta;
-}
-bool Ray::getInside(){	return _inside;}
 
 /*RayColor Ray::getColor(){
 	return collidesWith();
@@ -122,33 +104,14 @@ void Ray::checkThese( Shape * shapes, int total_shapes )
 //			//First we check to see if its a plane, if it is we need to proceduraly shade it
 //			if( _collisionShapes[i].getType() == SHAPE_PLANE ){
 //
-//				int PLANE_WIDTH = 15;
-//				double PLANE_HEIGHT = 231;
-//				double xPos = collision.getPosition().getX();
-//				double yPos = collision.getPosition().getY();
-//				double zPos = collision.getPosition().getZ();
-//
-//				//We want to get one of the spheres, yet make sure we dont get a indexOutOfBounds issue
-//				int j = ( i+1 < _numShapes ) ? i+1 : i-1;
-//				
-//				if( abs( otherShapes[1].getPosition().getY() - yPos ) > PLANE_WIDTH ){
-//					return _ambient->getColor();
-//				}
-//				double abs_ = abs( otherShapes[1].getPosition().getZ() - zPos ); 
-//
-//				if(  abs_ < PLANE_HEIGHT ){
-//					return _ambient->getColor();	
-//				}else{
-//					int cat = 5;
-//				}
 //				//Attempt to make bounds for our plane
-//				/*double distanceFrom = collision.getPosition().distanceFrom( _collisionShapes[i].getPosition() );
+//				double distanceFrom = collision.getPosition().distanceFrom( _collisionShapes[i].getPosition() );
 //				if( distanceFrom> 265 ){
 //					return _ambient->getColor();
-//				}*/
+//				}
 //
-//
-//				RayColor calcColor = ShaderTool::GridProceduralShade( &_collisionShapes[i], collision.getPosition() );
+//				// commented out due to it being deprecated!
+//				RayColor calcColor;// = ShaderTool::GridProceduralShade( &_collisionShapes[i], collision.getPosition() );
 //				_collisionShapes[i].setAmbientColor( calcColor );
 //				return _collisionShapes[i].getAmbientColor();
 //			//otherwise shade normal
@@ -177,10 +140,11 @@ void Ray::checkThese( Shape * shapes, int total_shapes )
 //						visibleLightsCount++;
 //					}
 //				}
-//				r = ShaderTool::applyPhongShader(_ambient, &visibleLights, visibleLightsCount,
+//				// DEPRECATED
+//				/*r = ShaderTool::applyPhongShader(_ambient, &visibleLights, visibleLightsCount,
 //					collision.getSurfaceNormal(), collision.getPosition(), &_collisionShapes[i], 
-//					_camera);
-//				return r;//_collisionShapes[i].getColor();
+//					_camera);*/
+//				_collisionShapes[i].getColor();
 //			}
 //		}
 //	}

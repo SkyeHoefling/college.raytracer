@@ -16,17 +16,22 @@ Shape::Shape(Vector3 position, double radius, RayColor color) : Entity(position)
 	_exponentColor = 20;
 }
 
-Shape::Shape( Vector3 position, double radius, RayColor color, RayColor ambient, RayColor specular, RayColor diffuse, int exponent, double reflection, double transparent ):Entity(position)
+Shape::Shape( Vector3 position, double radius, RayColor ambient, RayColor specular, RayColor diffuse, int exponent )
 {
 	init();
 	_boundingRadius = radius;
-	_color = color;
+	_color = ambient;
 	_ambientColor = ambient;
 	_specularColor = specular;
 	_diffuseColor = diffuse;
 	_exponentColor = exponent;
+}
+
+Shape::Shape(Vector3 position, double radius, RayColor color, double reflection, double transparent):Entity(position){
+	_boundingRadius = radius;
+	_color = color;
 	_reflection = clampDouble(reflection, 0, 1);
-	_transparent = clampDouble(transparent, 0, 1);
+	_transparent = clampDouble(reflection, 0, 1);
 }
 
 Shape::~Shape(void)
@@ -92,5 +97,3 @@ double Shape::clampDouble(double value, double low, double high){
 	else if(value < low) value = low;
 	return value;
 }
-double Shape::getIndexOfRefraction()	{	return _indexOfRefraction;	}
-void Shape::setIndexOfRefraction(double i)	{	_indexOfRefraction = i;	}

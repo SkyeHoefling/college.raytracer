@@ -45,12 +45,9 @@ void init(){
 void createEntities(){
 	int numberOfShapes = 3;
 	Shape* shapes = new Shape[numberOfShapes];			
-	shapes[0] = Sphere(Vector3(-80,40,100), 60, RayColor(1,1,1), RayColor(1,1,1), RayColor(.9, .9, .9),
-		RayColor(1,1,1), 5, 0, 1.0);
-	shapes[0].setIndexOfRefraction(INDEX_OF_REFRACTION_GLASS);
-	shapes[1] = Sphere(Vector3(-40,-85,-120), 90, RayColor(0.7,0.7,0.7), RayColor(.7, 0.7, 0.7), RayColor(1, 1, 1),
-		RayColor(.7,.7,.7), 20, 0.75,0);	
-	shapes[2] = Plane(Vector3(130,-200,-25), Vector3(-1,0,0), 10, 10, RayColor(0,0,1));
+	shapes[0] = Sphere(Vector3(30,20,80), 60, RayColor(1,0,0), 0, 0);	
+	shapes[1] = Sphere(Vector3(-40,-25,10), 90, RayColor(0,1,0), 1,0);	
+	shapes[2] = Plane(Vector3(5,-40,-25), Vector3(0,1,0), 10, 10, RayColor(0,0,1));
 
 	// create the camera
 	Vector3 position = Vector3(0.0f, 0.0f, 300.0f);
@@ -68,13 +65,12 @@ void createEntities(){
 	lightSource = new Light(position, color);
 	// the lightsource index starts at 1 that means.
 	int numberOfLights = 1;
-	Light lightSourceArray[] = {Light(Vector3(-150.0f,-50.0f,00.0f), color)};//500,500,50
+	Light lightSourceArray[] = {Light(Vector3(100.0f,200.0f,100.0f), color)};//500,500,50
 	//lightSourceArray = {lightSource};
 
 
 	// create an ambient light
 	color = RayColor(100.0f, 104.0f, 237.0f, 1.0f);
-	//color = RayColor(0,0,0);
 	color = color.getNormalized();
 
 	ambientLight = new AmbientLight(position, color, 1000);
@@ -88,8 +84,8 @@ void createEntities(){
 
 	position = cam->getPosition();
 	// create the view Plane
-	//position.addZ(-150);
-	position.addZ(-525);
+	position.addZ(-275);
+	//position.addX(-150);
 	orientation = Vector3(0.0f, 0.0f, 1.0f);
 	up = Vector3(0.0f, 1.0f, 0.0f);
 	// normalize vectors
@@ -134,7 +130,7 @@ void displayRayTracing(){
         }*/
 	vp->updatePixels(worldController);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-	glDrawPixels(wWidth, wHeight, GL_RGB, GL_FLOAT, vp->getToneRepoPixels());
+	glDrawPixels(wWidth, wHeight, GL_RGB, GL_FLOAT, vp->getPixels());
     glutSwapBuffers();
 }
 

@@ -85,11 +85,6 @@ RayColor RayColor::getNormalized(){
 
 }
 
-bool RayColor::operator==( RayColor target ){
-	if( this->getR() == target.getR() && this->getG() == target.getG() && this->getB() == target.getB() )
-		return true;
-	return false;
-}
 RayColor RayColor::operator+(RayColor rightHandSide){
 	return RayColor(_r + rightHandSide.getR(),
 				    _g + rightHandSide.getG(),

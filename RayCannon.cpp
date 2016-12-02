@@ -14,7 +14,7 @@ RayCannon::RayCannon( Vector3 vLoc, Shape* shapes, int totalShapes,
 }
 
 RayCannon::RayCannon(Vector3 vLoc, World* worldRef): Entity (vLoc){
-	_shader = new ShaderTool(worldRef, 4);
+	_shader = new ShaderTool(worldRef, 10);
 
 }
 
@@ -28,6 +28,5 @@ RayColor RayCannon::shootRayAt( Vector3 p)
 {
 	Ray r = Ray( _position );
 	r.setTarget( p );
-	r.setEta(INDEX_OF_REFRACTION_AIR);
-	return _shader->illuminate(&r, 0).getNormalized();
+	return _shader->illuminate(&r, 0);
 }

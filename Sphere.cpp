@@ -12,9 +12,8 @@ Sphere::Sphere(Vector3 position, double radius, RayColor color) : Shape(position
 	_type = SHAPE_SPHERE;
 }
 
-Sphere::Sphere(Vector3 position, double radius, RayColor color, RayColor ambient, RayColor specular,
-	RayColor diffuse, int exponent, double reflection, double transparent) : 
-	Shape(position, radius, color, ambient, specular, diffuse, exponent, reflection, transparent){
+Sphere::Sphere(Vector3 position, double radius, RayColor color,
+	double reflection, double transparent) : Shape(position, radius, color, reflection, transparent){
 		_radius = radius;
 		_type = SHAPE_SPHERE;
 }

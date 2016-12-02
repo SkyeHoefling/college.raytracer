@@ -1,48 +1,16 @@
 #include "CollisionTool.h"
 
-bool CollisionTool::getClosestIntersection(Shape* shapes, int numShapes, Ray* ray, PointCollision &closestCollision){
-	bool intersection = false;
-	bool currentIntersection = false;
-	PointCollision currentCollisionPoint;
-	for(int i = 0; i < numShapes; i ++){
-		// lets check if the current shape is too close to the ray origin
-		if(ray->getEta() < 1.0){
-			if(ray->getOrigin().distanceFrom(shapes[i].getPosition()) < shapes[i].getBoundingRadius() + 5)
-				continue;
-		}
-		currentIntersection = CollisionTool::collidesWithShape(&shapes[i],
-															   ray,
-															   currentCollisionPoint);
-		if(currentIntersection){
-			if(!intersection){
-				closestCollision = currentCollisionPoint;
-			} else {
-				double newDistance = 
-					currentCollisionPoint.getPosition1().distanceFrom(ray->getOrigin());
-				double oldDistance =
-					closestCollision.getPosition1().distanceFrom(ray->getOrigin());
-				if(newDistance < oldDistance) 
-					closestCollision = currentCollisionPoint;
-			}
-		}
-		if(currentIntersection || intersection)
-			intersection = true;
-	}
-	return intersection;
-}
-bool CollisionTool::collidesWithShape(Shape* theShape, Ray* ray, PointCollision &collision){
-	if(theShape->getType() == SHAPE_PLANE){
-		return collidesWithPlane(theShape, ray, collision);
-	}else{
-		return collidesWithSphere(theShape, ray, collision);
+bool CollisionTool::collidesWithShape(Shape* theShape, Vector3 endPoint, Vector3 origin, PointCollision &collision){
+	if(theShape->getBoundingRadius() == -1) { // we have a plane
+		return CollisionTool::collidesWithPlane(theShape, endPoint, origin, collision);
+	} else { // we have a sphere
+		return CollisionTool::collidesWithSphere(theShape, endPoint, origin, collision);
 	}
 	return false;
 }
 
-bool CollisionTool::collidesWithSphere(Shape* theShape, Ray* r, PointCollision &collision){
+bool CollisionTool::collidesWithSphere(Shape* theShape, Vector3 endPoint, Vector3 origin, PointCollision &collision){
 	Vector3 shapePosition = theShape->getPosition();
-	Vector3 endPoint = r->getTarget();
-	Vector3 origin = r->getOrigin();
 	Vector3 ray = Vector3(endPoint.getX() - origin.getX(),
 						  endPoint.getY() - origin.getY(),
 						  endPoint.getZ() - origin.getZ());
@@ -64,33 +32,21 @@ bool CollisionTool::collidesWithSphere(Shape* theShape, Ray* r, PointCollision &
 			(shapePosition.getZ() * origin.getZ())
 			) -
 		(theShape->getBoundingRadius() * theShape->getBoundingRadius());
-	double newA = ray.dot(ray);
-	double newB = 2*(ray.dot(origin));
-	double newC = origin.dot(origin) - theShape->getBoundingRadius()*2;
-	double newAnswer = newB * newB - 4 * newA * newC;
 	double answer = b * b - 4 * a * c;
 	if(answer > 0){
-		double t0 = (- b - sqrt( answer)) / (2*a);
-		double t1 = (- b + sqrt( answer)) / (2*a);
-		Vector3 p1 = Vector3(
-			origin.getX() + (t0 * ray.getX()),
-			origin.getY() + (t0 * ray.getY()),
-			origin.getZ() + (t0 * ray.getZ()));
-		Vector3 p2 = Vector3(
-			origin.getX() + (t1 * ray.getX()),
-			origin.getY() + (t1 * ray.getY()),
-			origin.getZ() + (t1 * ray.getZ()));
-		collision = PointCollision(theShape, p1, p2);
-		collision.calculateSurfaceNormals(theShape);
+		double t = (- b - sqrt( answer)) / (2*a);
+		collision = PointCollision(theShape, Vector3(
+			origin.getX() + (t * ray.getX()),
+			origin.getY() + (t * ray.getY()),
+			origin.getZ() + (t * ray.getZ())));
+		collision.calculateSurfaceNormal(theShape);
 		return true;
 	}
-	return false;
+	else return false;
 }
 
-bool CollisionTool::collidesWithPlane(Shape* theShape, Ray* ray, PointCollision &collision){
+bool CollisionTool::collidesWithPlane(Shape* theShape, Vector3 endPoint, Vector3 origin, PointCollision &collision){
 	Vector3 normal = Vector3(-1,0,0);
-	Vector3 endPoint = ray->getTarget();
-	Vector3 origin = ray->getOrigin();
 	Vector3 ab = endPoint - origin;
 	double d = normal.dot(theShape->getPosition());
 
@@ -99,7 +55,7 @@ bool CollisionTool::collidesWithPlane(Shape* theShape, Ray* ray, PointCollision 
 	//double u = d - normal.dot(origin) / normal.dot(ab);
 	if(u > 0 && u < 1){
 		collision =  PointCollision(theShape, ab * u + origin);		
-		collision.calculateSurfaceNormals(theShape);
+		collision.calculateSurfaceNormal(theShape);
 		return true;
 	}
 	else return false;
