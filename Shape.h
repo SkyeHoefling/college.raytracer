@@ -23,7 +23,6 @@ protected:
 	RayColor _diffuseColor;
 	int _exponentColor;
 	ShapeType _type;
-	double _indexOfRefraction;
 	void init( void );
 public:
 	Shape(void);
@@ -45,7 +44,6 @@ public:
 	int getExponentColor();
 	ShapeType getType();
 
-	double getIndexOfRefraction();
-	void setIndexOfRefraction(double i);
+	
 };
 

@@ -27,25 +27,12 @@ ViewPlane::~ViewPlane(void)
 void ViewPlane::initialize(){
 	setWindowSize();
 	_pixels = new float[_size * _colorAttributeCount];
-	_superPixels = new Pixel[_size];
 }
 void ViewPlane::setWindowSize(){
 	_size = _windowWidth * _windowHeight;
 }
 int ViewPlane::getWindowSize()	{	return _size;	}
 float* ViewPlane::getPixels()	{	return _pixels;	}
-float* ViewPlane::getToneRepoPixels(){
-	int length = _size*_colorAttributeCount;
-	float* result = new float[length];
-	int position = 0;
-	for(int i = 0; i < _superPixelLength; i ++){
-			result[position] = _superPixels[i].getColorR();
-			result[position + 1] = _superPixels[i].getColorG();
-			result[position + 2] = _superPixels[i].getColorB();
-			position+= 3;
-	}
-	return result;
-}
 
 void ViewPlane::setPixelColor3(RayColor pixelColor, int position){
 	_pixels[position] = pixelColor.getR();
@@ -64,8 +51,6 @@ void ViewPlane::updatePixels(World* worldRef){
 			pixelPosition += _colorAttributeCount;
 		}
 	}
-	setToneRepoPixels();
-	updateToneRepoPixels();
 	//for(int i = 0; i < _size * _colorAttributeCount; i+= _colorAttributeCount){
 	//	// shoot ray
 	//	pixelColor = _rayCannon->shootRayAt(getPixelWorldPosition(Vector2(0,0)));
@@ -74,27 +59,6 @@ void ViewPlane::updatePixels(World* worldRef){
 	//	_pixels[i + 2] = pixelColor.getB();
 	//}
 }
-void ViewPlane::updateToneRepoPixels(){
-	//RepoTool::wardCompression(_superPixels, _superPixelLength);
-	RepoTool::reinhardCompression(_superPixels, _superPixelLength);
-}
-void ViewPlane::setToneRepoPixels(){
-	int count = 0;
-	int positionCount = 0;
-	for(int x = 0; x < _windowWidth; x++){
-		for(int y = 0; y < _windowHeight; y++){
-			_superPixels[positionCount] = Pixel(Vector2(x,y), 
-												Vector3(_pixels[count],
-														_pixels[count+1],
-														_pixels[count+2]));
-
-			count += _colorAttributeCount;
-			positionCount++;
-		}
-	}
-	_superPixelLength = positionCount;
-}
-
 // TODO: get proper position
 Vector3 ViewPlane::getPixelWorldPosition(Vector2 pixel){
 	Vector3 pixelPosition = _position;

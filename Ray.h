@@ -10,9 +10,6 @@ private:
 	//the target point "on the viewscreen"
 	Vector3 _target;
 
-	double _eta;
-	bool _inside;
-
 // ---------------- this is all deprecated ---------------------- \\
 //	Shape*  _collisionShapes;
 //	int _numShapes;
@@ -30,16 +27,13 @@ private:
 	//_declspec(deprecated("(deprecated) ** No longer needed Ray Calculations, and Collisions handled elsewhere **"))Camera* _camera;	
 
 public:
+	Ray();
 	Ray(Vector3 loc);
-	Ray(Vector3 loc, bool inside);
 	~Ray(void);
 	void setTarget( Vector3 point );
 	Vector3 getOrigin();
 	Vector3 getTarget();
 	Vector3 asVector3();
-	double getEta();
-	void setEta( double new_eta );
-	bool getInside();
 	// the origin is the origin of our shadow ray, not a previous ray
 
 	// ---------------- this is all deprecated ---------------------- \\

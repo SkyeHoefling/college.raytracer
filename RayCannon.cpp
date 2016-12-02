@@ -28,6 +28,5 @@ RayColor RayCannon::shootRayAt( Vector3 p)
 {
 	Ray r = Ray( _position );
 	r.setTarget( p );
-	r.setEta(INDEX_OF_REFRACTION_AIR);
 	return _shader->illuminate(&r, 0).getNormalized();
 }

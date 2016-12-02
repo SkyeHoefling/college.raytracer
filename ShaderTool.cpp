@@ -1,7 +1,6 @@
 #include "ShaderTool.h"
 #include "Vector3.h"
 #include <stdio.h>
-#include <math.h>
 #include <iostream>
 
 #define RED RayColor( 1.0f, 0.0f, 0.0f )
@@ -66,10 +65,10 @@ RayColor ShaderTool::applyPhongShader(World* worldRef, PointCollision* collision
 		// 2. Kd * Sigma(Li(Si [dot] N))
 		double sigma = 0;
 		for(int i = 0; i < worldRef->getTotalLightSources(); i ++){
-			dirIncomingLight = collisionPoint->getPosition1() -
+			dirIncomingLight = collisionPoint->getPosition() -
 							   worldRef->getLightSources()[i].getPosition();
 			dirIncomingLight.normalize();
-			sigma = sigma + dirIncomingLight.dot(collisionPoint->getSurfaceNormalP1());
+			sigma = sigma + dirIncomingLight.dot(collisionPoint->getSurfaceNormal());
 		}
 		diffuseSolution = Vector4(collisionPoint->getShape()->getDiffuseColor().asVector3() * sigma);
 
@@ -93,20 +92,20 @@ RayColor ShaderTool::applyPhongShader(World* worldRef, PointCollision* collision
 		// To calculate V:
 		// Viewing direction = camera position - point of intersection
 		Vector3 viewingDirection = 
-			collisionPoint->getPosition1() - worldRef->getCamera()->getPosition();
+			collisionPoint->getPosition() - worldRef->getCamera()->getPosition();
 		viewingDirection.normalize();
 
 		// NOW: lets calculate the specular solution since we have all the pieces
 		sigma = 0;
 		for(int i = 0; i < worldRef->getTotalLightSources(); i ++){
 			// get direction of incoming light (S)
-			dirIncomingLight = collisionPoint->getPosition1() -
+			dirIncomingLight = collisionPoint->getPosition() -
 							   worldRef->getLightSources()[i].getPosition();
 			dirIncomingLight.normalize();
 			// calculate our mirror reflection
-			aAsDoub = 2 * (dirIncomingLight.dot(collisionPoint->getSurfaceNormalP1()) / 
-				(collisionPoint->getSurfaceNormalP1().length() * collisionPoint->getSurfaceNormalP1().length()));
-			a = collisionPoint->getSurfaceNormalP1() * aAsDoub;
+			aAsDoub = 2 * (dirIncomingLight.dot(collisionPoint->getSurfaceNormal()) / 
+				(collisionPoint->getSurfaceNormal().length() * collisionPoint->getSurfaceNormal().length()));
+			a = collisionPoint->getSurfaceNormal() * aAsDoub;
 			mirrorReflection = dirIncomingLight - a;
 			sigma = sigma + pow(mirrorReflection.dot(viewingDirection), 
 				collisionPoint->getShape()->getExponentColor());
@@ -201,8 +200,8 @@ RayColor ShaderTool::illuminate(Ray * ray, int depth){
 		if(collisionPoint.getShape()->getType() == SHAPE_PLANE){
 			double Y_OFFSET = -150;
 			double Z_OFFSET = -200;
-			double colY = collisionPoint.getPosition1().getY() + Y_OFFSET;
-			double colZ = collisionPoint.getPosition1().getZ() + Z_OFFSET;
+			double colY = collisionPoint.getPosition().getY() + Y_OFFSET;
+			double colZ = collisionPoint.getPosition().getZ() + Z_OFFSET;
 
 			double shapeY = collisionPoint.getShape()->getPosition().getY();
 			double shapeZ = collisionPoint.getShape()->getPosition().getZ();
@@ -213,7 +212,7 @@ RayColor ShaderTool::illuminate(Ray * ray, int depth){
 			if( abs( colY - shapeY) < dist_W && abs( colZ-shapeZ ) < dist_H ){
 				collisionPoint.setColor(
 					ShaderTool::gridProceduralShade(collisionPoint.getShape(), 
-												collisionPoint.getPosition1() ));
+												collisionPoint.getPosition() ));
 			}else{
 				collisionPoint.setColor( _worldRef->getAmbientLight()->getColor() );
 			}
@@ -223,23 +222,63 @@ RayColor ShaderTool::illuminate(Ray * ray, int depth){
       
 		// BASIC local illumination, returns the objects color???
 		resultColor = ShaderTool::applyPhongShader(_worldRef, &collisionPoint);		
-		Ray* shadow = spawnShadowRay(&collisionPoint.getPosition1());
+		Ray* shadow = spawnShadowRay(&collisionPoint.getPosition());
       
 		//resultColor = resultColor + illuminate(shadow, _maxDepth - 1);
-		if(depth < _maxDepth){						
+		if(depth < _maxDepth){			
 			if(collisionPoint.getShape()->getReflection() > 0){
+         //Create cone from Distance from collision Point
+         //for loop pick X number of random points within a circly
+         // each reflection ray, illuminate( ray, curDepth++ )
 				Ray * reflection = spawnReflectionRay(&collisionPoint, ray);
-				resultColor = resultColor +
-					(illuminate(reflection, depth+1) * collisionPoint.getShape()->getReflection());
+				//resultColor = resultColor + (illuminate(reflection, depth+1) * collisionPoint.getShape()->getReflection());
+				RayColor brdsColor = getBRDSColorFromCone( &collisionPoint, reflection, depth + 1 );
+				resultColor = resultColor + brdsColor;
 			}
 			if(collisionPoint.getShape()->getTransparent() > 0){
-				Ray* refraction = spawnRefractionRay(&collisionPoint, ray);
-				resultColor = resultColor + 
-					(illuminate(refraction, depth+1) * collisionPoint.getShape()->getTransparent());
-			}						
+
+			}			
 		}
 	}
 	return resultColor;
+}
+
+RayColor ShaderTool::getBRDSColorFromCone( PointCollision * ptCol, Ray * reflectRay, int depth ){
+	RayColor newColor = WHITE;
+	double averageR = 0, averageG = 0, averageB = 0;
+	int CONE_DIST = 400;
+	int CONE_RADIUS = 15;
+	const int total_rays = 20;
+	Ray brdsRays[ total_rays ];
+	Ray baseRay = Ray( Vector3( reflectRay->asVector3().getX(), reflectRay->asVector3().getY(), reflectRay->asVector3().getZ() ) ); 
+	Vector3 baseVector = baseRay.asVector3();
+	baseVector.normalize();
+	baseVector = baseVector * CONE_DIST;
+	double MAX_THETA = asin( CONE_RADIUS / baseVector.length() );
+
+
+	for( int i = 0 ; i < total_rays ; i++ ){
+		brdsRays[i] = Ray( Vector3( baseVector.getX() + CONE_RADIUS / cos( MAX_THETA * rand() ),
+									baseVector.getX() + CONE_RADIUS / sin( MAX_THETA * rand() ), 
+									baseVector.getX() + CONE_RADIUS / cos( MAX_THETA * rand() ) 
+									));
+	}
+	//brdsRays = brdsRays - sizeof( Ray ) * total_rays;
+	//loop through and get illumination per reflect array
+	for( int i = 0; i <	total_rays; i++ ){
+		Ray ray = brdsRays[i];
+		RayColor curRay = illuminate( &ray , depth + 1);
+		averageR += curRay.getR();
+		averageG += curRay.getG();
+		averageB += curRay.getB();
+	}
+	//average colors
+	averageR /= total_rays;
+	averageG /= total_rays;
+	averageB /= total_rays;
+	//return average
+	newColor.setColor( averageR, averageG, averageB );
+	return newColor;
 }
 
 Ray* ShaderTool::spawnShadowRay(Vector3* origin, int currentLight){
@@ -264,82 +303,12 @@ Ray* ShaderTool::spawnReflectionRay(PointCollision* collisionPoint, Ray* current
 	//		S [dot] N
 	// a = ----------- N
 	//		  |N|^2
-	Vector3 a = collisionPoint->getSurfaceNormalP1() * 
-		(currentRay->asVector3().normalized().dot(collisionPoint->getSurfaceNormalP1()) / 
-		collisionPoint->getSurfaceNormalP1().length() * collisionPoint->getSurfaceNormalP1().length());
+	Vector3 a = collisionPoint->getSurfaceNormal() * 
+		(currentRay->asVector3().normalized().dot(collisionPoint->getSurfaceNormal()) / 
+		collisionPoint->getSurfaceNormal().length() * collisionPoint->getSurfaceNormal().length());
 	Vector3 reflectionVector = currentRay->asVector3().normalized() - (a.normalized() * 2);
-	Ray* reflection = new Ray(collisionPoint->getPosition1());
-	reflection->setTarget(collisionPoint->getPosition1() + (reflectionVector.normalized() *5000));
-	//reflection->setEta(INDEX_OF_REFRACTION_AIR);
+	Ray* reflection = new Ray(collisionPoint->getPosition());
+	reflection->setTarget(collisionPoint->getPosition() + (reflectionVector.normalized() *5000));
 	return reflection;
-}
 
-Ray* ShaderTool::spawnRefractionRay(PointCollision* collisionPoint, Ray* currentRay){
-	// refraction ray math:
-	// *First lets demonstrate some simple formulas*
-	// (eta)i = sin(theta)t
-	// ------   -----------
-	// (eta)t   sin(theta)i
-	//
-	//                   eta(i)
-	// (alpha) = (eta)it = ------
-	//                   eta(t)
-	//
-	// cos(theta)i = -D [dot] N
-	//
-	// ** Lets get into the formula now **
-	// T = (alpha)D + (beta)N
-	// T = (eta)it(-D [dot] N - sqrt(1 - (eta)it((-D [dot] N)^2 -1))N
-	// T = (alpha)(-D [dot] N - sqrt(1 - (alpha)( (-D [dot] N)^2 - 1)) N
-	double alpha;
-	double costheta;
-	double betasqrt;
-	double beta;
-	Vector3 normal = collisionPoint->getSurfaceNormalP1();
-	Vector3 endPoint = Vector3();
-	
-	double eta = currentRay->getEta();
-	double ior = collisionPoint->getShape()->getIndexOfRefraction();
-	if(eta == ior){
-		// we are inside!! bamf
-		normal = normal * -1;
-		collisionPoint->getShape()->setIndexOfRefraction(INDEX_OF_REFRACTION_AIR);
-	}
-		
-	eta = INDEX_OF_REFRACTION_AIR;
-	alpha = eta / ior;
-	costheta = currentRay->asVector3().dot(normal);
-	betasqrt = 1 - alpha*alpha * (costheta*costheta -1);
-	//if(betasqrt < 0) return spawnReflectionRay(collisionPoint, currentRay);
-	beta = alpha * costheta - sqrt(betasqrt);
-
-	endPoint = currentRay->asVector3() * alpha + normal * beta;
-
-	Ray* transmission = new Ray(collisionPoint->getPosition1());
-	transmission->setTarget(endPoint.normalized() * 5000);
-	transmission->setEta(collisionPoint->getShape()->getIndexOfRefraction());	
-	endPoint = currentRay->getTarget();
-	currentRay = new Ray(collisionPoint->getPosition1());
-	currentRay->setTarget(endPoint.normalized());
-	//Ray* nRay = new Ray(getPointOnOtherSideOfTheSphere(currentRay, collisionPoint));
-	//nRay->setTarget(endPoint);
-	transmission = new Ray(getPointOnOtherSideOfTheSphere(currentRay, collisionPoint));
-	transmission->setTarget(endPoint);
-	return transmission;
-}
-
-Vector3 ShaderTool::getPointOnOtherSideOfTheSphere( Ray * T , PointCollision* origin ){
-	Ray radiusRay = Ray( origin->getPosition1() );
-	radiusRay.setTarget( origin->getShape()->getPosition() );
-
-	double radius = origin->getShape()->getBoundingRadius();
-	double inside =  T->asVector3().dot( radiusRay.asVector3() ) / radius;
-	double toRad = (3.14/180);
-	double tempTheta = cos(inside *  toRad);
-	double centerTheta = 90 - tempTheta;
-
-	double centerDist = radius * sin( centerTheta );
-	T->setTarget( T->getTarget() * ( centerDist * 2 ) );
-
-	return T->getTarget();
 }

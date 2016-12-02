@@ -1,6 +1,7 @@
+#include <stdlib.h>
 #include <GL/glut.h>
 #include <GL/GL.h>
-#include <stdlib.h>
+
 #include <time.h>
 
 #include "Camera.h"
@@ -45,11 +46,10 @@ void init(){
 void createEntities(){
 	int numberOfShapes = 3;
 	Shape* shapes = new Shape[numberOfShapes];			
-	shapes[0] = Sphere(Vector3(-80,40,100), 60, RayColor(1,1,1), RayColor(1,1,1), RayColor(.9, .9, .9),
-		RayColor(1,1,1), 5, 0, 1.0);
-	shapes[0].setIndexOfRefraction(INDEX_OF_REFRACTION_GLASS);
-	shapes[1] = Sphere(Vector3(-40,-85,-120), 90, RayColor(0.7,0.7,0.7), RayColor(.7, 0.7, 0.7), RayColor(1, 1, 1),
-		RayColor(.7,.7,.7), 20, 0.75,0);	
+	shapes[0] = Sphere(Vector3(30,20,80), 60, RayColor(1,0,0), RayColor(1,0,0), RayColor(.9, .9, .9),
+		RayColor(1,0,0), 5, .0, 0);
+	shapes[1] = Sphere(Vector3(-40,-85,-120), 90, RayColor(0,1,0), RayColor(.8, 0, 0), RayColor(.7, .7, .9),
+		RayColor(0,1,0), 6, 0.99,0);	
 	shapes[2] = Plane(Vector3(130,-200,-25), Vector3(-1,0,0), 10, 10, RayColor(0,0,1));
 
 	// create the camera
@@ -74,7 +74,6 @@ void createEntities(){
 
 	// create an ambient light
 	color = RayColor(100.0f, 104.0f, 237.0f, 1.0f);
-	//color = RayColor(0,0,0);
 	color = color.getNormalized();
 
 	ambientLight = new AmbientLight(position, color, 1000);
@@ -134,7 +133,7 @@ void displayRayTracing(){
         }*/
 	vp->updatePixels(worldController);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-	glDrawPixels(wWidth, wHeight, GL_RGB, GL_FLOAT, vp->getToneRepoPixels());
+	glDrawPixels(wWidth, wHeight, GL_RGB, GL_FLOAT, vp->getPixels());
     glutSwapBuffers();
 }
 
@@ -163,8 +162,9 @@ void keyboard(unsigned char key, int x, int y){
                 // quit the program and clean up data
                 case 'q': case 'Q': case 27:
                         unload();
-                        exit(0);
-                        break;
+                        //exit(0);
+                        return;
+						break;
                 // change to full screen
                /* case 'f': case 'F':
                         glutFullScreen();
